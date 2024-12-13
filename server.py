@@ -27,25 +27,25 @@ def handle_client(client_socket):
     password = client_socket.recv(1024).decode().strip()
     
     if USERS.get(username) != password:
-        client_socket.send(b"Autenticacao falhou. Encerrando conexao.\n")
+        client_socket.send(b"Authentication failed. Closing connection.\n")
         client_socket.close()
         return
     
-    client_socket.send(b"Usuario autenticado.\n")
+    client_socket.send(b"Authentication successful.\n")
     
     while True:
-        client_socket.send(b"MENU\n1: IPv4\n2: IPv6\n0: Sair: ")
+        client_socket.send(b"MENU\n1: IPv4\n2: IPv6\n0: Exit\n\nOPTION: ")
         choice = client_socket.recv(1024).decode().strip()
         
         if choice == "0":
-            client_socket.send(b"Encerrando conexao.\n")
+            client_socket.send(b"Closing connection.\n")
             client_socket.close()
             break
         elif choice not in ["1", "2"]:
-            client_socket.send(b"Opcao invalida.\n")
+            client_socket.send(b"Invalid option.\n")
             continue
 
-        client_socket.send(b"Digite a sub-rede desejada (ex: 192.168.1.10/24 ou 2001:db8::/48): ")
+        client_socket.send(b"Input the subnet (ex: 192.168.1.10/24 or 2001:db8::/48): ")
         subnet = client_socket.recv(1024).decode().strip()
         
         result = calculate_subnet_info(subnet, choice)
@@ -53,9 +53,9 @@ def handle_client(client_socket):
             client_socket.send(f"Erro: {result['error']}\n".encode())
         else:
             response = (
-                f"Numero de enderecos uteis: {result['num_usable_addresses']}\n"
-                f"Primeiro endereco: {result['first_usable']}\n"
-                f"Ultimo endereco: {result['last_usable']}\n"
+                f"Number of useful addresses: {result['num_usable_addresses']}\n"
+                f"First address: {result['first_usable']}\n"
+                f"Last address: {result['last_usable']}\n"
             )
             client_socket.send(response.encode())
 
@@ -63,11 +63,11 @@ def main():
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.bind(("0.0.0.0", 65432))
     server.listen(5)
-    print("Servidor escutando na porta 65432...")
+    print("Server listening on port 65432...")
     
     while True:
         client_socket, addr = server.accept()
-        print(f"Conexão de {addr}")
+        print(f"Connection from {addr}")
         handle_client(client_socket)
 
 if __name__ == "__main__":
