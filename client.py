@@ -7,7 +7,7 @@ def main():
     while True:
         response = client.recv(1024).decode()
         print(response, end="")
-        if "Goodbye!" in response or "Authentication failed" in response:
+        if "Encerrando conexao." in response:
             break
         data = input()
         client.send(data.encode())

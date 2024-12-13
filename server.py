@@ -1,17 +1,16 @@
 import socket
-import ipaddress
+import ipcalc
 
 # Dados de autenticação
 USERS = {"admin": "password123"}
 
-def calculate_subnet_info(subnet):
+def calculate_subnet_info(subnet, choice):
     try:
-        network = ipaddress.ip_network(subnet, strict=False)
-        num_usable_addresses = max(0, network.num_addresses - 2)  # Exclui endereço de rede e broadcast (IPv4)
-        usable_hosts = list(network.hosts())
+        network = ipcalc.Network(subnet)
+        num_usable_addresses = network.size() - 2 if choice == '1' else network.size() # Exclui endereço de rede e broadcast (IPv4)
         
-        first_usable = usable_hosts[0] if usable_hosts else "N/A"
-        last_usable = usable_hosts[-1] if usable_hosts else "N/A"
+        first_usable = network.host_first()
+        last_usable = network.host_last()
         
         return {
             "num_usable_addresses": num_usable_addresses,
@@ -28,35 +27,35 @@ def handle_client(client_socket):
     password = client_socket.recv(1024).decode().strip()
     
     if USERS.get(username) != password:
-        client_socket.send(b"Authentication failed. Closing connection.\n")
+        client_socket.send(b"Autenticacao falhou. Encerrando conexao.\n")
         client_socket.close()
         return
     
-    client_socket.send(b"Authentication successful.\n")
+    client_socket.send(b"Usuario autenticado.\n")
     
     while True:
-        client_socket.send(b"Choose type (1: IPv4, 2: IPv6, 0: Exit): ")
+        client_socket.send(b"MENU\n1: IPv4\n2: IPv6\n0: Sair: ")
         choice = client_socket.recv(1024).decode().strip()
         
         if choice == "0":
-            client_socket.send(b"Goodbye!\n")
+            client_socket.send(b"Encerrando conexao.\n")
             client_socket.close()
             break
         elif choice not in ["1", "2"]:
-            client_socket.send(b"Invalid choice.\n")
+            client_socket.send(b"Opcao invalida.\n")
             continue
 
-        client_socket.send(b"Enter subnet (e.g., 192.168.1.10/24 or 2001:db8::/48): ")
+        client_socket.send(b"Digite a sub-rede desejada (ex: 192.168.1.10/24 ou 2001:db8::/48): ")
         subnet = client_socket.recv(1024).decode().strip()
         
-        result = calculate_subnet_info(subnet)
+        result = calculate_subnet_info(subnet, choice)
         if "error" in result:
-            client_socket.send(f"Error: {result['error']}\n".encode())
+            client_socket.send(f"Erro: {result['error']}\n".encode())
         else:
             response = (
-                f"Usable Addresses: {result['num_usable_addresses']}\n"
-                f"First Usable: {result['first_usable']}\n"
-                f"Last Usable: {result['last_usable']}\n"
+                f"Numero de enderecos uteis: {result['num_usable_addresses']}\n"
+                f"Primeiro endereco: {result['first_usable']}\n"
+                f"Ultimo endereco: {result['last_usable']}\n"
             )
             client_socket.send(response.encode())
 
@@ -64,11 +63,11 @@ def main():
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.bind(("0.0.0.0", 65432))
     server.listen(5)
-    print("Server listening on port 65432...")
+    print("Servidor escutando na porta 65432...")
     
     while True:
         client_socket, addr = server.accept()
-        print(f"Connection from {addr}")
+        print(f"Conexão de {addr}")
         handle_client(client_socket)
 
 if __name__ == "__main__":
